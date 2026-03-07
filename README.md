@@ -24,7 +24,7 @@ A comprehensive microservices-based e-commerce platform for ice cream products b
 
 ## 🛠️ Technology Stack
 
-- **.NET 7** - Web API framework
+- **.NET 8** - Web API framework
 - **SQL Server** - Primary database
 - **Redis** - Caching and session management
 - **RabbitMQ** - Message broker for async communication
