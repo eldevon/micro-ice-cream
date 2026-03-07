@@ -1,0 +1,183 @@
+
+services:
+  # SQL Server for all services
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: icecream-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Your_password123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - icecream-network
+
+  # Redis for caching and session management
+  redis:
+    image: redis:alpine
+    container_name: icecream-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - icecream-network
+
+  # RabbitMQ for message brokering
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: icecream-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - icecream-network
+
+  # Catalog Service
+  catalog-service:
+    build:
+      context: ./src/CatalogService
+      dockerfile: Dockerfile
+    container_name: icecream-catalog
+    ports:
+      - "5001:80"
+      - "5002:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Your_password123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CatalogDb;User Id=sa;Password=Your_password123;MultipleActiveResultSets=true;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - icecream-network
+
+  # Cart Service
+  cart-service:
+    build:
+      context: ./src/CartService
+      dockerfile: Dockerfile
+    container_name: icecream-cart
+    ports:
+      - "5003:80"
+      - "5004:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Your_password123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__Redis=redis:6379
+      - Services__CatalogService=http://catalog-service:80
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      - redis
+      - rabbitmq
+      - catalog-service
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - icecream-network
+
+  # Checkout Service
+  checkout-service:
+    build:
+      context: ./src/CheckoutService
+      dockerfile: Dockerfile
+    container_name: icecream-checkout
+    ports:
+      - "5005:80"
+      - "5006:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Your_password123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=CheckoutDb;User Id=sa;Password=Your_password123;MultipleActiveResultSets=true;TrustServerCertificate=True
+      - Services__CartService=http://cart-service:80
+      - Services__UserService=http://user-service:80
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      - sqlserver
+      - rabbitmq
+      - cart-service
+      - user-service
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - icecream-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./src/UserService
+      dockerfile: Dockerfile
+    container_name: icecream-user
+    ports:
+      - "5007:80"
+      - "5008:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Your_password123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=UserDb;User Id=sa;Password=Your_password123;MultipleActiveResultSets=true;TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+    depends_on:
+      - sqlserver
+      - rabbitmq
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - icecream-network
+
+  # API Gateway
+  gateway-api:
+    build:
+      context: ./src/GatewayApi
+      dockerfile: Dockerfile
+    container_name: icecream-gateway
+    ports:
+      - "5000:80"
+      - "5009:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=Your_password123
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - Services__CatalogService=http://catalog-service:80
+      - Services__CartService=http://cart-service:80
+      - Services__CheckoutService=http://checkout-service:80
+      - Services__UserService=http://user-service:80
+    depends_on:
+      - catalog-service
+      - cart-service
+      - checkout-service
+      - user-service
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - icecream-network
+
+networks:
+  icecream-network:
+    driver: bridge
+
+volumes:
+  sqlserver_data:
