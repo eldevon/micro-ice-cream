@@ -1,28 +1,28 @@
-# 🍦 Ice Cream E-Commerce Platform
+# Ice Cream E-Commerce Platform
 
 A comprehensive microservices-based e-commerce platform for ice cream products built with ASP.NET Core 7.
 
 ## Architecture Overview
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+
 │ Gateway │────▶│ Catalog │────▶│ SQL │
 │ API │ │ Service │ │ Server │
-└─────────────┘ └─────────────┘ └─────────────┘
+
 │ │
 │ │
 ▼ ▼
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+
 │ Cart │────▶│ Redis │ │ RabbitMQ │
 │ Service │ │ Cache │ │ Broker │
-└─────────────┘ └─────────────┘ └─────────────┘
+
 │ ▲ ▲
 │ │ │
 ▼ │ │
-┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+
 │ Checkout │────▶│ User │────▶│ SQL │
 │ Service │ │ Service │ │ Server │
-└─────────────┘ └─────────────┘ └─────────────┘
 
-## 🛠️ Technology Stack
+
+## Technology Stack
 
 - **.NET 8** - Web API framework
 - **SQL Server** - Primary database
@@ -36,7 +36,7 @@ A comprehensive microservices-based e-commerce platform for ice cream products b
 - **xUnit** - Testing
 - **AutoMapper** - Object mapping
 
-## 📦 Services
+## Services
 
 ### 1. **Catalog Service** (Port: 5001)
 Manages ice cream products, flavors, and categories.
@@ -74,7 +74,7 @@ Single entry point for all microservices.
 - Rate limiting
 - Request/Response logging
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
